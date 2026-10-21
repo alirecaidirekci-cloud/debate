@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Münazara Kura / Debate Draw</title>
+<style>
+  /* Every rule is scoped under #debate-app so it won't clash with the host site's CSS. */
+  #debate-app {
+    --navy: #14284b;
+    --accent: #c8102e;
+    --ink: #1c2230;
+    --muted: #5b6475;
+    --line: #dde2ea;
+    --soft: #f4f6fa;
+    --ok: #1d7a46;
+    --pro: #1d5fbf;
+    --con: #b4361f;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--ink);
+    line-height: 1.5;
+    background: #fff;
+    box-sizing: border-box;
+  }
+  #debate-app *, #debate-app *::before, #debate-app *::after { box-sizing: inherit; }
+  #debate-app h1 { font-size: 1.8rem; color: var(--navy); margin: 0 0 4px; }
+  #debate-app h2 { font-size: 1.25rem; color: var(--navy); margin: 0 0 12px; }
+  #debate-app h3 { font-size: 1.05rem; margin: 0 0 8px; }
+  #debate-app p { margin: 0 0 12px; }
+  #debate-app .sub { color: var(--muted); margin-bottom: 20px; }
+
+  #debate-app .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  #debate-app .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  #debate-app .lang-switch button { border: 0; background: #fff; padding: 6px 14px; cursor: pointer; font: inherit; color: var(--muted); }
+  #debate-app .lang-switch button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+
+  #debate-app .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+
+  #debate-app .countdown { text-align: center; background: var(--navy); color: #fff; border: 0; }
+  #debate-app .countdown h2 { color: #fff; }
+  #debate-app .cd-grid { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 8px 0 10px; }
+  #debate-app .cd-cell { min-width: 74px; background: rgba(255,255,255,.1); border-radius: 10px; padding: 10px 6px; }
+  #debate-app .cd-num { display: block; font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #debate-app .cd-lbl { font-size: .8rem; opacity: .8; text-transform: uppercase; letter-spacing: .05em; }
+  #debate-app .cd-when { opacity: .85; font-size: .95rem; margin: 0; }
+
+  #debate-app .rules { background: #fff7e6; border: 1px solid #f1d9a6; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+  #debate-app .rules ul { margin: 6px 0 0; padding-left: 20px; }
+  #debate-app .rules li { margin-bottom: 4px; }
+
+  #debate-app label.field { display: block; font-weight: 600; margin: 14px 0 6px; }
+  #debate-app input[type="text"], #debate-app textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #c4cbd8; border-radius: 8px; font: inherit; background: #fff; color: var(--ink);
+  }
+  #debate-app textarea { min-height: 80px; resize: vertical; }
+  #debate-app input:focus, #debate-app textarea:focus { outline: 2px solid var(--navy); outline-offset: 1px; }
+  #debate-app .choices { display: flex; gap: 18px; flex-wrap: wrap; }
+  #debate-app .choices label, #debate-app .check { display: inline-flex; align-items: flex-start; gap: 8px; font-weight: 400; cursor: pointer; }
+  #debate-app .check { margin-top: 16px; }
+  #debate-app .hint { font-size: .88rem; color: var(--muted); margin-top: 4px; }
+
+  #debate-app .btn { display: inline-block; border: 0; border-radius: 8px; padding: 11px 22px; font: inherit; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff; margin-top: 18px; }
+  #debate-app .btn:disabled { opacity: .6; cursor: default; }
+  #debate-app .btn.secondary { background: #fff; color: var(--navy); border: 1px solid var(--navy); margin-top: 8px; margin-right: 8px; }
+
+  #debate-app .msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; display: none; }
+  #debate-app .msg.ok { display: block; background: #e7f5ec; color: var(--ok); }
+  #debate-app .msg.err { display: block; background: #fdeaea; color: var(--accent); }
+
+  #debate-app .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  #debate-app .stat { background: var(--soft); border-radius: 8px; padding: 8px 12px; font-size: .92rem; }
+  #debate-app .stat b { font-size: 1.1rem; color: var(--navy); }
+  #debate-app .topic-list { margin: 0; padding-left: 20px; }
+  #debate-app .topic-list li { margin-bottom: 4px; }
+  #debate-app .tag { display: inline-block; font-size: .72rem; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-right: 6px; background: var(--soft); color: var(--navy); vertical-align: 1px; }
+
+  #debate-app .debate { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  #debate-app .debate-topic { font-weight: 700; margin-bottom: 10px; }
+  #debate-app .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #debate-app .side { border-radius: 8px; padding: 10px 12px; background: var(--soft); }
+  #debate-app .side h4 { margin: 0 0 6px; font-size: .9rem; text-transform: uppercase; letter-spacing: .04em; }
+  #debate-app .side.pro h4 { color: var(--pro); }
+  #debate-app .side.con h4 { color: var(--con); }
+  #debate-app .side ol { margin: 0; padding-left: 20px; }
+  #debate-app .empty { color: var(--muted); font-style: italic; }
+  #debate-app details { margin-top: 8px; }
+  #debate-app summary { cursor: pointer; color: var(--muted); font-size: .92rem; }
+
+  @media (max-width: 560px) {
+    #debate-app h1 { font-size: 1.45rem; }
+    #debate-app .sides { grid-template-columns: 1fr; }
+    #debate-app .cd-grid { gap: 6px; }
+    #debate-app .cd-cell { min-width: 0; flex: 1 1 0; padding: 8px 2px; }
+    #debate-app .cd-num { font-size: 1.5rem; }
+    #debate-app .cd-lbl { font-size: .68rem; letter-spacing: 0; }
+  }
+  @media print {
+    #debate-app .no-print { display: none !important; }
+    #debate-app .card { border: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="debate-app">
+
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="title"></h1>
+      <p class="sub" data-i18n="subtitle"></p>
+    </div>
+    <div class="lang-switch no-print" role="group" aria-label="Language">
+      <button type="button" data-set-lang="tr">TR</button>
+      <button type="button" data-set-lang="en">EN</button>
+    </div>
+  </div>
+
+  <!-- Countdown -->
+  <section class="card countdown no-print">
+    <h2 id="cd-title" data-i18n="cdTitle"></h2>
+    <div class="cd-grid" id="cd-grid">
+      <div class="cd-cell"><span class="cd-num" id="cd-d">0</span><span class="cd-lbl" data-i18n="days"></span></div>
+      <div class="cd-cell"><span class="cd-num" id="cd-h">00</span><span class="cd-lbl" data-i18n="hours"></span></div>
+      <div class="cd-cell"><span class="cd-num" id="cd-m">00</span><span class="cd-lbl" data-i18n="minutes"></span></div>
+      <div class="cd-cell"><span class="cd-num" id="cd-s">00</span><span class="cd-lbl" data-i18n="seconds"></span></div>
+    </div>
+    <p class="cd-when" id="cd-when"></p>
+  </section>
+
+  <!-- Form (hidden after the deadline) -->
+  <section class="card no-print" id="form-card">
+    <h2 data-i18n="formTitle"></h2>
+
+    <div class="rules">
+      <strong data-i18n="rulesTitle"></strong>
+      <ul>
+        <li data-i18n="rule1"></li>
+        <li data-i18n="rule2"></li>
+        <li data-i18n="rule3"></li>
+        <li data-i18n="rule4"></li>
+        <li data-i18n="rule5"></li>
+      </ul>
+    </div>
+
+    <form id="debate-form" novalidate>
+      <label class="field" data-i18n="fLang"></label>
+      <div class="choices">
+        <label><input type="radio" name="lang" value="tr" required> <span data-i18n="langTr"></span></label>
+        <label><input type="radio" name="lang" value="en"> <span data-i18n="langEn"></span></label>
+      </div>
+
+      <label class="field" for="f-topic" data-i18n="fTopic"></label>
+      <textarea id="f-topic" name="topic" maxlength="200" required data-i18n-ph="phTopic"></textarea>
+      <div class="hint" data-i18n="hintTopic"></div>
+
+      <label class="field" for="f-name" data-i18n="fName"></label>
+      <input type="text" id="f-name" name="name" maxlength="80" required autocomplete="name" data-i18n-ph="phName">
+
+      <label class="field" for="f-dept" data-i18n="fDept"></label>
+      <input type="text" id="f-dept" name="department" maxlength="80" required data-i18n-ph="phDept">
+
+      <label class="field" data-i18n="fVolunteer"></label>
+      <div class="choices">
+        <label><input type="radio" name="volunteer" value="yes" required> <span data-i18n="yes"></span></label>
+        <label><input type="radio" name="volunteer" value="no"> <span data-i18n="no"></span></label>
+      </div>
+
+      <label class="check"><input type="checkbox" name="confirm" required> <span data-i18n="fConfirm"></span></label>
+
+      <button type="submit" class="btn" id="submit-btn" data-i18n="submit"></button>
+      <div class="msg" id="form-msg" role="status"></div>
+    </form>
+  </section>
+
+  <!-- Submitted topics -->
+  <section class="card no-print" id="topics-card">
+    <h2 data-i18n="topicsTitle"></h2>
+    <div class="stats" id="stats"></div>
+    <ul class="topic-list" id="topic-list"></ul>
+  </section>
+
+  <!-- Draw results (shown after the deadline) -->
+  <section class="card" id="results-card" hidden>
+    <h2 data-i18n="resultsTitle"></h2>
+    <p class="hint" data-i18n="resultsNote"></p>
+    <div id="results"></div>
+    <button type="button" class="btn secondary no-print" onclick="window.print()" data-i18n="print"></button>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ======================= SETTINGS =======================
+  var CONFIG = {
+    // When submissions close and the draw happens (Turkey time, UTC+3).
+    DEADLINE: "2026-10-22T22:00:00+03:00",
+    // Leave empty to store entries in this browser only (one shared device).
+    // Paste your Google Apps Script web-app URL here to collect entries from any phone.
+    SHEET_URL: "https://script.google.com/macros/s/AKfycbwY_-xq0E9ngp3-KiV_R_dgDEWXjzmofebaJvgAxSTXVGb90bHIuSL6KNhGg5t9GYR6/exec",
+    // Page language when opened ("tr" or "en"). A ?lang=en link overrides it.
+    DEFAULT_LANG: "tr",
+    TEAM_SIZE: 3
+  };
+  // ========================================================
+
+  var TEXT = {
+    tr: {
+      title: "Münazara Konu Önerisi ve Kura",
+      subtitle: "Münazara konusu önerin, münazırlara gönüllü olun. Süre dolduğunda takımlar otomatik ve rastgele belirlenir.",
+      cdTitle: "Kuraya kalan süre",
+      cdDone: "Süre doldu, kura çekildi!",
+      cdWhen: "Son başvuru ve kura zamanı: ",
+      days: "Gün", hours: "Saat", minutes: "Dakika", seconds: "Saniye",
+      formTitle: "Konu Öneri Formu",
+      rulesTitle: "Konu seçim kuralları",
+      rule1: "Konu tartışmaya açık olmalı ve açık bir LEHTE ve ALEYHTE tarafı bulunmalıdır.",
+      rule2: "Konuyu soru olarak değil, savunulabilecek bir önerme olarak yazın (ör. \"Bu meclis üniversitelerde devam zorunluluğunun kaldırılmasını savunur.\").",
+      rule3: "Doğruluğu kesin olan bilgiler (ör. \"Dünya yuvarlaktır\") veya tek taraflı konular kabul edilmez.",
+      rule4: "Saygılı olun: kişileri hedef alan, ayrımcı veya hakaret içeren konular kabul edilmez.",
+      rule5: "Kura kuralı: Hiçbir öğrenci, kendi önerdiği konuda (LEHTE veya ALEYHTE tarafta) münazara yapamaz.",
+      fLang: "Münazara dili",
+      langTr: "Türkçe", langEn: "İngilizce",
+      fTopic: "Önerilen münazara konusu",
+      phTopic: "Bu meclis ... savunur.",
+      hintTopic: "En az 10, en fazla 200 karakter. Soru işaretiyle bitmemelidir.",
+      fName: "Adınız Soyadınız",
+      phName: "ör. Ayşe Yılmaz",
+      fDept: "Bölümünüz",
+      phDept: "ör. İşletme",
+      fVolunteer: "Münazır (konuşmacı) olmaya gönüllü müsünüz?",
+      yes: "Evet", no: "Hayır",
+      fConfirm: "Önerdiğim konunun açık bir lehte ve aleyhte tarafı olduğunu onaylıyorum.",
+      submit: "Gönder",
+      sending: "Gönderiliyor...",
+      ok: "Teşekkürler! Öneriniz kaydedildi.",
+      errRequired: "Lütfen tüm alanları doldurun ve onay kutusunu işaretleyin.",
+      errShort: "Konu en az 10 karakter olmalıdır.",
+      errQuestion: "Konuyu soru olarak değil, bir önerme olarak yazın (soru işareti kullanmayın).",
+      errDuplicate: "Bu konuyu zaten önerdiniz.",
+      errClosed: "Başvuru süresi doldu.",
+      errNetwork: "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.",
+      topicsTitle: "Önerilen konular",
+      statEntries: "öneri", statVolTr: "Türkçe gönüllü", statVolEn: "İngilizce gönüllü",
+      noTopics: "Henüz öneri yok.",
+      resultsTitle: "Kura Sonuçları",
+      resultsNote: "Takımlar rastgele belirlendi. Hiçbir öğrenci kendi önerdiği konuda (lehte veya aleyhte) yer almamaktadır.",
+      groupTr: "Türkçe Münazaralar", groupEn: "İngilizce Münazaralar",
+      debate: "Münazara", topic: "Konu",
+      pro: "Lehte", con: "Aleyhte",
+      reserves: "Yedek münazırlar",
+      notEnough: "Bu dilde münazara oluşturmak için yeterli gönüllü veya konu yok (her münazara için 6 gönüllü ve 1 konu gerekir).",
+      noValid: "Kurala uygun bir dağılım bulunamadı. Daha fazla gönüllü veya konu gerekiyor.",
+      print: "Yazdır"    },
+    en: {
+      title: "Debate Topic Proposals & Draw",
+      subtitle: "Propose a debate topic and volunteer to debate. When the countdown ends, teams are drawn automatically and at random.",
+      cdTitle: "Time left until the draw",
+      cdDone: "Time is up — the draw is complete!",
+      cdWhen: "Submission deadline and draw: ",
+      days: "Days", hours: "Hours", minutes: "Minutes", seconds: "Seconds",
+      formTitle: "Topic Proposal Form",
+      rulesTitle: "Topic rules",
+      rule1: "The topic must be debatable, with a clear PRO side and a clear CON side.",
+      rule2: "Write it as a motion that can be argued, not as a question (e.g. \"This house would abolish compulsory attendance at universities.\").",
+      rule3: "Settled facts (e.g. \"The Earth is round\") and one-sided topics are not accepted.",
+      rule4: "Be respectful: topics that target individuals or are discriminatory or offensive are not accepted.",
+      rule5: "Draw rule: no student will ever defend (PRO or CON side) the topic they proposed.",
+      fLang: "Language of the debate",
+      langTr: "Turkish", langEn: "English",
+      fTopic: "Proposed debate topic",
+      phTopic: "This house would ...",
+      hintTopic: "10–200 characters. It must not end with a question mark.",
+      fName: "Your full name",
+      phName: "e.g. Ayşe Yılmaz",
+      fDept: "Your department",
+      phDept: "e.g. Business Administration",
+      fVolunteer: "Do you volunteer to be a debater?",
+      yes: "Yes", no: "No",
+      fConfirm: "I confirm my topic has a clear pro side and a clear con side.",
+      submit: "Submit",
+      sending: "Sending...",
+      ok: "Thank you! Your proposal has been saved.",
+      errRequired: "Please fill in every field and tick the confirmation box.",
+      errShort: "The topic must be at least 10 characters long.",
+      errQuestion: "Write the topic as a motion, not a question (no question mark).",
+      errDuplicate: "You have already proposed this topic.",
+      errClosed: "The submission period has ended.",
+      errNetwork: "Could not send. Check your internet connection and try again.",
+      topicsTitle: "Proposed topics",
+      statEntries: "proposals", statVolTr: "Turkish volunteers", statVolEn: "English volunteers",
+      noTopics: "No proposals yet.",
+      resultsTitle: "Draw Results",
+      resultsNote: "Teams were drawn at random. No student debates (PRO or CON side) the topic they proposed.",
+      groupTr: "Turkish Debates", groupEn: "English Debates",
+      debate: "Debate", topic: "Topic",
+      pro: "Pro", con: "Con",
+      reserves: "Reserve debaters",
+      notEnough: "Not enough volunteers or topics for a debate in this language (each debate needs 6 volunteers and 1 topic).",
+      noValid: "No arrangement satisfies the rules. More volunteers or topics are needed.",
+      print: "Print"    }
+  };
+
+  var STORE_KEY = "debateEntries_v1";
+  var DEADLINE_MS = new Date(CONFIG.DEADLINE).getTime();
+  var root = document.getElementById("debate-app");
+  var $ = function (id) { return document.getElementById(id); };
+
+  var uiLang = pickLang();
+  var entries = [];
+  var drawn = false;
+
+  // ---------- language ----------
+  function pickLang() {
+    var q = new URLSearchParams(location.search).get("lang");
+    if (q === "tr" || q === "en") return q;
+    try { var saved = localStorage.getItem("debateUiLang"); if (saved === "tr" || saved === "en") return saved; } catch (e) {}
+    return CONFIG.DEFAULT_LANG;
+  }
+  function t(key) { return TEXT[uiLang][key]; }
+
+  function applyLang() {
+    document.documentElement.lang = uiLang;
+    root.querySelectorAll("[data-i18n]").forEach(function (n) { n.textContent = t(n.getAttribute("data-i18n")); });
+    root.querySelectorAll("[data-i18n-ph]").forEach(function (n) { n.placeholder = t(n.getAttribute("data-i18n-ph")); });
+    root.querySelectorAll("[data-set-lang]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-set-lang") === uiLang));
+    });
+    var fmt = new Intl.DateTimeFormat(uiLang === "tr" ? "tr-TR" : "en-GB", {
+      dateStyle: "full", timeStyle: "short", timeZone: "Europe/Istanbul"
+    });
+    $("cd-when").textContent = t("cdWhen") + fmt.format(new Date(DEADLINE_MS)) + " (TR)";
+    if (Date.now() >= DEADLINE_MS) $("cd-title").textContent = t("cdDone");
+    renderTopics();
+    if (!$("results-card").hidden) renderResults();
+  }
+
+  root.querySelectorAll("[data-set-lang]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      uiLang = b.getAttribute("data-set-lang");
+      try { localStorage.setItem("debateUiLang", uiLang); } catch (e) {}
+      applyLang();
+    });
+  });
+
+  // ---------- storage ----------
+  function loadEntries() {
+    if (CONFIG.SHEET_URL) {
+      return fetch(CONFIG.SHEET_URL).then(function (r) { return r.json(); })
+        .then(function (d) { return d.entries || []; })
+        .catch(function () { return []; });
+    }
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (e) {}
+    return Promise.resolve(list);
+  }
+
+  function saveEntry(entry) {
+    if (CONFIG.SHEET_URL) {
+      // text/plain avoids a CORS preflight, which Apps Script doesn't answer.
+      return fetch(CONFIG.SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(entry)
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) throw new Error(d.error || "error");
+      });
+    }
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (e) {}
+    list.push(entry);
+    localStorage.setItem(STORE_KEY, JSON.stringify(list));
+    return Promise.resolve();
+  }
+
+  function norm(s) {
+    return String(s || "").toLocaleLowerCase("tr-TR").replace(/[.!\s]+$/g, "").replace(/\s+/g, " ").trim();
+  }
+
+  // ---------- form ----------
+  $("debate-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var f = ev.target;
+    var msg = $("form-msg");
+    var show = function (cls, text) { msg.className = "msg " + cls; msg.textContent = text; };
+
+    if (Date.now() >= DEADLINE_MS) return show("err", t("errClosed"));
+
+    var lang = (f.querySelector('input[name="lang"]:checked') || {}).value;
+    var vol = (f.querySelector('input[name="volunteer"]:checked') || {}).value;
+    var topic = f.topic.value.replace(/\s+/g, " ").trim();
+    var name = f.name.value.replace(/\s+/g, " ").trim();
+    var department = f.department.value.replace(/\s+/g, " ").trim();
+
+    if (!lang || !vol || !topic || !name || !department || !f.confirm.checked) return show("err", t("errRequired"));
+    if (topic.length < 10) return show("err", t("errShort"));
+    if (/[?？]\s*$/.test(topic)) return show("err", t("errQuestion"));
+    var dup = entries.some(function (e) { return norm(e.name) === norm(name) && norm(e.topic) === norm(topic); });
+    if (dup) return show("err", t("errDuplicate"));
+
+    var entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      time: Date.now(),
+      lang: lang, topic: topic, name: name, department: department, volunteer: vol === "yes"
+    };
+
+    var btn = $("submit-btn");
+    btn.disabled = true; btn.textContent = t("sending");
+    saveEntry(entry).then(function () {
+      show("ok", t("ok"));
+      f.reset();
+      return refresh();
+    }).catch(function (err) {
+      show("err", err && err.message === "closed" ? t("errClosed") : t("errNetwork"));
+    }).then(function () {
+      btn.disabled = false; btn.textContent = t("submit");
+    });
+  });
+
+  // ---------- topic list ----------
+  function validEntries() {
+    return entries.filter(function (e) { return Number(e.time) <= DEADLINE_MS; });
+  }
+
+  function renderTopics() {
+    var list = validEntries();
+    var vols = { tr: {}, en: {} };
+    list.forEach(function (e) { if (e.volunteer && vols[e.lang]) vols[e.lang][norm(e.name)] = 1; });
+
+    var stats = $("stats");
+    stats.textContent = "";
+    [[list.length, t("statEntries")],
+     [Object.keys(vols.tr).length, t("statVolTr")],
+     [Object.keys(vols.en).length, t("statVolEn")]].forEach(function (s) {
+      var d = document.createElement("div"); d.className = "stat";
+      var b = document.createElement("b"); b.textContent = s[0];
+      d.appendChild(b); d.appendChild(document.createTextNode(" " + s[1]));
+      stats.appendChild(d);
+    });
+
+    var ul = $("topic-list");
+    ul.textContent = "";
+    var seen = {};
+    list.forEach(function (e) {
+      var key = e.lang + "|" + norm(e.topic);
+      if (seen[key]) return;
+      seen[key] = 1;
+      var li = document.createElement("li");
+      var tag = document.createElement("span"); tag.className = "tag"; tag.textContent = e.lang.toUpperCase();
+      li.appendChild(tag); li.appendChild(document.createTextNode(e.topic));
+      ul.appendChild(li);
+    });
+    if (!ul.children.length) {
+      var li = document.createElement("li"); li.className = "empty"; li.textContent = t("noTopics"); ul.appendChild(li);
+    }
+  }
+
+  // ---------- the draw ----------
+  // Seeded random generator: everyone who opens the page sees the same draw for the same entries.
+  function hashString(s) {
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function makeRng(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var x = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(arr, rng) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(rng() * (i + 1)); var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function drawLanguage(list, lang, rng) {
+    var size = CONFIG.TEAM_SIZE;
+    var topics = {}, people = {};
+    list.filter(function (e) { return e.lang === lang; }).forEach(function (e) {
+      var tk = norm(e.topic), pk = norm(e.name);
+      if (!topics[tk]) topics[tk] = { key: tk, title: e.topic };
+      if (!people[pk]) people[pk] = { name: e.name, department: e.department || "", volunteer: false, own: {} };
+      people[pk].own[tk] = true;
+      if (e.volunteer) people[pk].volunteer = true;
+    });
+    var topicArr = Object.keys(topics).sort().map(function (k) { return topics[k]; });
+    var vols = Object.keys(people).sort().map(function (k) { return people[k]; })
+      .filter(function (p) { return p.volunteer; });
+
+    var count = Math.min(topicArr.length, Math.floor(vols.length / (size * 2)));
+    if (count === 0) return { debates: [], reserves: vols, problem: "notEnough" };
+
+    // Try many random arrangements; keep the first that obeys every rule.
+    // If none is found, try with one debate fewer.
+    for (; count > 0; count--) {
+      for (var attempt = 0; attempt < 3000; attempt++) {
+        var chosen = shuffle(topicArr, rng).slice(0, count);
+        var pool = shuffle(vols, rng);
+        var debates = [], ok = true;
+        for (var d = 0; d < chosen.length && ok; d++) {
+          var tk = chosen[d].key;
+          var pro = takeFrom(pool, size, function (p) { return !p.own[tk]; });
+          var con = takeFrom(pool, size, function (p) { return !p.own[tk]; });
+          if (!pro || !con) ok = false;
+          else debates.push({ topic: chosen[d].title, pro: pro, con: con });
+        }
+        if (ok) return { debates: debates, reserves: pool, problem: null };
+      }
+    }
+    return { debates: [], reserves: vols, problem: "noValid" };
+  }
+
+  // Removes and returns `n` people from `pool` that pass `allowed`, or null if there aren't enough.
+  function takeFrom(pool, n, allowed) {
+    var picked = [];
+    for (var i = 0; i < pool.length && picked.length < n; i++) {
+      if (allowed(pool[i])) { picked.push(pool[i]); pool.splice(i, 1); i--; }
+    }
+    if (picked.length < n) { Array.prototype.push.apply(pool, picked); return null; }
+    return picked;
+  }
+
+  function renderResults() {
+    var list = validEntries().slice().sort(function (a, b) { return String(a.id) < String(b.id) ? -1 : 1; });
+    var seed = hashString(CONFIG.DEADLINE + JSON.stringify(list.map(function (e) {
+      return [e.id, e.lang, e.topic, e.name, !!e.volunteer];
+    })));
+    var rng = makeRng(seed);
+    var box = $("results");
+    box.textContent = "";
+
+    [["tr", "groupTr"], ["en", "groupEn"]].forEach(function (g) {
+      var res = drawLanguage(list, g[0], rng);
+      var h = document.createElement("h3"); h.textContent = t(g[1]); h.style.marginTop = "16px";
+      box.appendChild(h);
+      if (res.problem) {
+        var p = document.createElement("p"); p.className = "empty"; p.textContent = t(res.problem);
+        box.appendChild(p);
+      }
+      res.debates.forEach(function (d, i) {
+        var card = document.createElement("div"); card.className = "debate";
+        var tp = document.createElement("div"); tp.className = "debate-topic";
+        tp.textContent = t("debate") + " " + (i + 1) + " — " + t("topic") + ": " + d.topic;
+        card.appendChild(tp);
+        var sides = document.createElement("div"); sides.className = "sides";
+        sides.appendChild(sideBox("pro", t("pro"), d.pro));
+        sides.appendChild(sideBox("con", t("con"), d.con));
+        card.appendChild(sides);
+        box.appendChild(card);
+      });
+      if (res.reserves.length && !res.problem) {
+        var r = document.createElement("p");
+        r.innerHTML = "<strong></strong> ";
+        r.firstChild.textContent = t("reserves") + ":";
+        r.appendChild(document.createTextNode(res.reserves.map(personLabel).join(", ")));
+        box.appendChild(r);
+      }
+    });
+    $("results-card").hidden = false;
+  }
+
+  function personLabel(p) { return p.department ? p.name + " (" + p.department + ")" : p.name; }
+
+  function sideBox(cls, label, members) {
+    var s = document.createElement("div"); s.className = "side " + cls;
+    var h = document.createElement("h4"); h.textContent = label; s.appendChild(h);
+    var ol = document.createElement("ol");
+    members.forEach(function (m) { var li = document.createElement("li"); li.textContent = personLabel(m); ol.appendChild(li); });
+    s.appendChild(ol);
+    return s;
+  }
+
+  // ---------- countdown ----------
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function tick() {
+    var left = Math.max(0, DEADLINE_MS - Date.now());
+    var s = Math.floor(left / 1000);
+    $("cd-d").textContent = Math.floor(s / 86400);
+    $("cd-h").textContent = pad(Math.floor(s % 86400 / 3600));
+    $("cd-m").textContent = pad(Math.floor(s % 3600 / 60));
+    $("cd-s").textContent = pad(s % 60);
+    if (left === 0 && !drawn) {
+      drawn = true;
+      $("cd-title").textContent = t("cdDone");
+      $("form-card").hidden = true;
+      // Reload so the draw uses every entry that arrived before the deadline.
+      refresh().then(function () { renderResults(); });
+    }
+  }
+
+  function refresh() {
+    return loadEntries().then(function (list) { entries = list; renderTopics(); });
+  }
+
+  // ---------- start ----------
+  applyLang();
+  if (Date.now() >= DEADLINE_MS) {
+    drawn = true;
+    $("form-card").hidden = true;
+    refresh().then(function () { renderResults(); });
+  } else {
+    refresh();
+    if (CONFIG.SHEET_URL) setInterval(refresh, 60000);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
